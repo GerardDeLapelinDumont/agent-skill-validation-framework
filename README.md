@@ -26,7 +26,7 @@ Across 5 production skills over 10 weeks:
 
 Fully compatible with:
 - [Anthropic Agent Skills Open Standard](https://agentskills.io) — all extensions are additive
-- [AWS Agent SOPs](https://docs.aws.amazon.com/bedrock/latest/userguide/agents-sop.html) — STRICT mode complements RFC 2119 constraints
+- [AWS Agent SOPs](https://aws.amazon.com/blogs/opensource/introducing-strands-agent-sops-natural-language-workflows-for-ai-agents/) — STRICT mode complements RFC 2119 constraints
 
 A skill built with this framework is still a valid Anthropic Agent Skill.
 
