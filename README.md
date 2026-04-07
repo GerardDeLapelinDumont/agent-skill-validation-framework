@@ -45,7 +45,7 @@ A skill built with this framework is still a valid Anthropic Agent Skill.
 
 ## Related
 
-- [Blog Post: From Probabilistic to Predictable](https://medium.com/@gdumont) — Detailed writeup with production metrics
+- [Blog Post: From Probabilistic to Predictable](https://medium.com/@gerarddldumont/from-probabilistic-to-predictable-a-validation-framework-for-ai-agent-skills-95b463022dfb) — Detailed writeup with production metrics
 
 ## License
 
