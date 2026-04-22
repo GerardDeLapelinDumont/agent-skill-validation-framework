@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check markdown formatting
+        uses: DavidAnson/markdownlint-cli2-action@v19
+        with:
+          globs: '**/*.md'
+          config: |
+            {
+              "MD013": false,
+              "MD033": false,
+              "MD041": false
+            }
+
+      - name: Check Python syntax
+        run: python3 -m py_compile examples/scripts/validate-draft.py
+
+      - name: Run example validation script
+        run: |
+          python3 examples/scripts/validate-draft.py examples/state/pending-items.json
+          echo "Validation script exit code: $?"

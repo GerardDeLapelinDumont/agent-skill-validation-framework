@@ -1,0 +1,535 @@
+<h1
+id="from-probabilistic-to-predictable-a-validation-framework-for-ai-agent-skills">From
+Probabilistic to Predictable: A Validation Framework for AI Agent
+Skills</h1>
+<p><em>How a 3-tier validation layer on top of the Anthropic Agent
+Skills standard turned our AI agent workflows from “works most of the
+time” to “works every time.”</em></p>
+<p><em>By Gerard De Lapelin Dumont and an AI field assistant
+(co-author)</em></p>
+<hr />
+<p>Anthropic released the Agent Skills open standard in December 2025.
+It solved a real problem — modular, reusable expertise for AI agents
+without bloating every request with redundant instructions. A month
+later, AWS introduced Agent SOPs — markdown-based procedures using RFC
+2119 keywords (MUST, SHOULD, MAY) to constrain agent behavior.</p>
+<p>Both are great. We use both. And after six months of building
+production skills on top of them, we can tell you: they’re not
+enough.</p>
+<p>Skills tell the agent <em>what</em> to do. SOPs tell the agent
+<em>how</em> to behave. Neither tells the agent — or you — whether the
+output is <em>good enough to trust</em>.</p>
+<p>This is the story of how we built a validation framework to close
+that gap, and the actual numbers that convinced us it was worth the
+effort.</p>
+<hr />
+<h2 id="the-problem-we-kept-hitting">The Problem We Kept Hitting</h2>
+<p>We build agent skills for enterprise workflows — the kind where the
+agent scans your emails, extracts customer interactions, and writes
+structured records to a CRM. Not chatbot stuff. Production data
+pipelines where bad output has real consequences.</p>
+<p>Our skills followed the Anthropic standard. Clean SKILL.md files,
+YAML frontmatter, progressive disclosure, executable scripts. They
+worked. Mostly.</p>
+<p>“Mostly” was the problem. We tracked three failure modes over our
+first 8 weeks of production use:</p>
+<p><strong>Step skipping.</strong> The agent would read a 12-step skill,
+decide steps 5 and 6 were “redundant,” and skip them. Step 5 was
+duplicate detection. Step 6 was CRM record linking. Both were critical.
+The agent didn’t know that because it was optimizing for speed, not
+correctness.</p>
+<p><strong>Silent error recovery.</strong> A file-not-found error? The
+agent would quietly search for an alternative and keep going. An API
+timeout? Silent retry. The output looked fine. It wasn’t. We’d discover
+missing data days later when someone asked “why isn’t this customer
+interaction in the CRM?”</p>
+<p><strong>Everything submitted at the same confidence.</strong> The
+agent would generate 10 findings from an email scan. Three were solid —
+clear customer interaction, full context, linked to an opportunity. Four
+were reasonable but missing details. Three were speculative at best. All
+10 got submitted. No distinction between “I’m certain” and “this might
+be something.”</p>
+<p>The MTHDS open standard project nailed the diagnosis: “Skills guide
+intent. They don’t guarantee execution.”</p>
+<p>We needed something between “skill executed” and “output
+submitted.”</p>
+<hr />
+<h2 id="what-we-built-three-extensions">What We Built: Three
+Extensions</h2>
+<p>Our framework adds three capabilities to any SKILL.md-based skill.
+Each is independent — adopt one without the others — but they compound
+when used together.</p>
+<h3 id="extension-1-strict-execution-mode">Extension 1: STRICT Execution
+Mode</h3>
+<p>LLMs are non-deterministic. Same skill, same input, different
+execution path. STRICT mode fights this with an explicit contract.</p>
+<p>Every skill declares it right after the commands table:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode markdown"><code class="sourceCode markdown"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">## Execution Mode: STRICT</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>**Before executing ANY tools:**</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>Read this ENTIRE skill file</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>Follow each step IN ORDER</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>Do NOT skip steps</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>Do NOT make assumptions</span></code></pre></div>
+<p>Before any tool calls, the agent displays a numbered plan:</p>
+<pre><code>═══════════════════════════════════════════════════════════
+CUSTOMER INTERACTION SCANNER
+═══════════════════════════════════════════════════════════
+
+EXECUTION PLAN:
+ ☐ Step 0: Check last run state
+ ☐ Step 1: Load customer context
+ ☐ Step 2: Scan emails
+ ☐ Step 3: Scan calendar
+ ☐ Step 4: Extract findings
+ ☐ Step 5: Check for duplicates
+ ☐ Step 6: Link to CRM records
+ ☐ Step 7: Run validation
+ ☐ Step 8: Assign confidence
+ ☐ Step 9: Queue results
+ ☐ Step 10: Update state
+ ☐ Step 11: Show summary</code></pre>
+<p>Two things happen here. First, the agent commits to a sequence before
+starting — reducing ad-hoc reordering. Second, the user gets a visible
+contract. If Step 5 doesn’t show up in the output, you know something
+was skipped.</p>
+<p>Is it foolproof? No. But in our testing, step-skipping dropped from
+roughly 1-in-4 runs to fewer than 1-in-20.</p>
+<p><strong>How this relates to AWS Agent SOPs:</strong> SOPs use
+MUST/SHOULD/MAY for per-step constraints. STRICT mode constrains the
+execution <em>sequence</em>. They’re complementary — use STRICT for
+ordering, RFC 2119 for per-step rules.</p>
+<h3 id="extension-2-three-tier-validation">Extension 2: Three-Tier
+Validation</h3>
+<p>This is the core of the framework. Every skill that writes to an
+external system implements three validation tiers before anything gets
+submitted.</p>
+<p><strong>Tier 1: Structural Validation (Code, Not
+Language)</strong></p>
+<p>Programmatic checks that fields exist and conform to expected
+formats. This follows Anthropic’s own recommendation — use deterministic
+scripts for deterministic work.</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># scripts/validate-draft.py</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Exit 0 = PASSED, 1 = FAILED (exclude), 2 = WARNINGS (proceed)</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json, sys</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>ALLOWED_CATEGORIES <span class="op">=</span> [<span class="st">&quot;Highlight&quot;</span>, <span class="st">&quot;Observation&quot;</span>, <span class="st">&quot;Risk&quot;</span>, <span class="st">&quot;Challenge&quot;</span>]</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> validate(draft):</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    errors <span class="op">=</span> []</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">len</span>(draft.get(<span class="st">&quot;description&quot;</span>, <span class="st">&quot;&quot;</span>)) <span class="op">&lt;</span> <span class="dv">50</span>:</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>        errors.append(<span class="st">&quot;Description under 50 chars&quot;</span>)</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> draft.get(<span class="st">&quot;category&quot;</span>) <span class="kw">not</span> <span class="kw">in</span> ALLOWED_CATEGORIES:</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>        errors.append(<span class="ss">f&quot;Invalid category: </span><span class="sc">{</span>draft[<span class="st">&#39;category&#39;</span>]<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> draft.get(<span class="st">&quot;account_id&quot;</span>, <span class="st">&quot;&quot;</span>).startswith(<span class="st">&quot;001&quot;</span>):</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>        errors.append(<span class="st">&quot;Bad account ID format&quot;</span>)</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> errors</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>draft <span class="op">=</span> json.loads(<span class="bu">open</span>(sys.argv[<span class="dv">1</span>]).read())</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>errors <span class="op">=</span> validate(draft)</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>sys.exit(<span class="dv">1</span> <span class="cf">if</span> errors <span class="cf">else</span> <span class="dv">0</span>)</span></code></pre></div>
+<p>The agent doesn’t interpret validation results. It reads exit codes.
+0 = passed. 1 = failed, item excluded. 2 = warnings, proceed but flag.
+Deterministic code doing deterministic work.</p>
+<p><strong>Tier 2: Confidence Scoring</strong></p>
+<p>Every generated item gets a confidence level with explicit,
+domain-specific criteria:</p>
+<table>
+<colgroup>
+<col style="width: 23%" />
+<col style="width: 33%" />
+<col style="width: 43%" />
+</colgroup>
+<thead>
+<tr>
+<th>Level</th>
+<th>Criteria</th>
+<th>What Happens</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>HIGH</strong></td>
+<td>Clear source event + complete context + CRM record linked + all
+fields validated + unambiguous classification</td>
+<td>Auto-approve eligible</td>
+</tr>
+<tr>
+<td><strong>MEDIUM</strong></td>
+<td>Likely valid but missing one HIGH criterion (no CRM link, ambiguous
+type, limited context)</td>
+<td>Human review required</td>
+</tr>
+<tr>
+<td><strong>LOW</strong></td>
+<td>Speculative — brief interaction, missing multiple fields, unclear if
+item is warranted</td>
+<td>Enrich or discard</td>
+</tr>
+</tbody>
+</table>
+<p>The criteria must be specific to your domain. “Complete context”
+means something different for an email scanner (full thread available)
+versus a meeting logger (agenda + attendees + notes all present). Vague
+criteria → everything becomes MEDIUM → framework is useless.</p>
+<p><strong>Tier 3: Gated Submission</strong></p>
+<p>The skill that <em>generates</em> items is optimized for recall —
+don’t miss anything. The skill that <em>submits</em> items is optimized
+for precision — don’t submit garbage. They’re separate skills connected
+by a validated queue file.</p>
+<p>The generator sets <code>auto_approve_eligible: true</code> only for
+HIGH confidence items. A separate queue management skill handles review
+and submission. The generator never writes directly to external
+systems.</p>
+<h3 id="extension-3-cross-session-state">Extension 3: Cross-Session
+State</h3>
+<p>The Anthropic standard explicitly calls out “no cross-session state”
+as a limitation. For one-shot skills, that’s fine. For skills that run
+daily or weekly, it’s a dealbreaker.</p>
+<p>Without state, the agent doesn’t know when it last ran. It
+re-processes the same emails. It can’t detect duplicates against
+previously submitted items.</p>
+<p>Our fix is simple — local state files in a dedicated data directory
+that’s separate from your skill definitions:</p>
+<pre><code>&lt;skill-data-dir&gt;/&lt;skill-name&gt;/.last-run          # Timestamp + scan metadata
+&lt;skill-data-dir&gt;/&lt;skill-name&gt;/pending-items.json  # Queue awaiting review
+&lt;skill-data-dir&gt;/&lt;skill-name&gt;/logs/submitted.json # Submission history for dedup</code></pre>
+<p>One important design decision: <strong>keep your skill data separate
+from your skill definitions.</strong> If your skills are managed by a
+platform that pushes updates (and most agent frameworks do), your skill
+definition files can get overwritten. Queues, state files, and
+submission logs need to live somewhere that survives those updates. We
+use a sibling directory to our skill definitions — same parent,
+different folder. Pick whatever works for your setup, but don’t
+co-locate runtime data with skill source files.</p>
+<p>The <code>.last-run</code> file auto-calculates the next scan window.
+The submission log enables duplicate detection:</p>
+<pre><code>For each candidate:
+1. Check submitted.json for matching title + account + date (±3 days)
+2. &gt;85% match → DUPLICATE, exclude
+3. 50-85% match → UPDATE, include with reference to original
+4. &lt;50% match → CREATE, new item</code></pre>
+<p>No database. No API. Just the local filesystem turning a stateless
+skill into a stateful workflow.</p>
+<hr />
+<h2 id="the-numbers">The Numbers</h2>
+<p>We’ve been running this framework across 5 production skills for
+about 10 weeks. Here’s what the data shows.</p>
+<h3 id="skill-1-crm-activity-logger">Skill 1: CRM Activity Logger</h3>
+<p>Scans emails, calendar, and meeting notes to generate structured
+activity records for a CRM.</p>
+<p><strong>Before the framework (weeks 1-4):</strong> - Agent generated
+activities and submitted them directly - No confidence scoring, no
+validation, no duplicate detection - ~30% of submitted activities needed
+manual correction after the fact - Duplicate activities appeared when
+the skill ran on overlapping date ranges - Step skipping caused missed
+CRM record linking on ~25% of runs</p>
+<p><strong>After the framework (weeks 5-10):</strong> - 23 activities
+submitted through the validated queue - 100% were HIGH confidence at
+time of submission - 3 MEDIUM confidence items currently in queue
+awaiting review (not auto-submitted) - 0 duplicates submitted (dedup
+caught overlapping items across runs) - 0 post-submission corrections
+needed</p>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 22%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Before</th>
+<th>After</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Post-submission corrections</td>
+<td>~30%</td>
+<td>0%</td>
+<td>✅ Eliminated</td>
+</tr>
+<tr>
+<td>Duplicate submissions</td>
+<td>Frequent</td>
+<td>0</td>
+<td>✅ Eliminated</td>
+</tr>
+<tr>
+<td>Step-skipping incidents</td>
+<td>~25% of runs</td>
+<td>&lt;5% of runs</td>
+<td>✅ 80% reduction</td>
+</tr>
+<tr>
+<td>Items needing manual review</td>
+<td>0 (everything auto-submitted)</td>
+<td>3 of 26 (12%)</td>
+<td>✅ Only uncertain items flagged</td>
+</tr>
+</tbody>
+</table>
+<h3 id="skill-2-field-insight-generator">Skill 2: Field Insight
+Generator</h3>
+<p>Scans emails, calendar, and customer documents to generate field
+insights (structured observations about customer trends).</p>
+<p><strong>Production data from a single run (8-day scan
+window):</strong> - 39 emails scanned (25 inbox, 14 sent) - 60+ calendar
+events processed - 51 OneDrive documents analyzed - 8 findings generated
+- Confidence breakdown: 5 HIGH, 2 MEDIUM, 0 LOW - 1 duplicate detected
+(marked as UPDATE instead of CREATE) - 7 net-new items queued for
+review</p>
+<p>The 2 MEDIUM items were missing opportunity links — the agent flagged
+them for human review instead of submitting incomplete records. Before
+the framework, all 8 would have been submitted, and someone would have
+noticed the missing links later. Or not.</p>
+<h3 id="skill-3-meeting-notes-logger">Skill 3: Meeting Notes Logger</h3>
+<p>Processes calendar events and generates structured meeting notes in
+customer document folders.</p>
+<p><strong>Quality validation catches (Step 8 in the skill):</strong> -
+Content validation: title clarity, attendee completeness, substantive
+notes - Format validation: filename convention, template compliance,
+markdown validity - Data validation: customer name matches context file,
+storage path correct - Security validation: no PII in filenames</p>
+<p>In one run processing 3 meetings, the validation step caught a
+filename that didn’t follow the naming convention. The agent flagged it,
+asked “Fix issues?”, corrected it, and continued. Without validation,
+the file would have been saved with an inconsistent name — minor, but it
+compounds across hundreds of files.</p>
+<h3 id="aggregate-impact">Aggregate Impact</h3>
+<p>Across all 5 skills over 10 weeks:</p>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Total items generated</td>
+<td>~90</td>
+</tr>
+<tr>
+<td>Items submitted (HIGH confidence)</td>
+<td>23</td>
+</tr>
+<tr>
+<td>Items in review queue (MEDIUM)</td>
+<td>12</td>
+</tr>
+<tr>
+<td>Items discarded (LOW or failed validation)</td>
+<td>~5</td>
+</tr>
+<tr>
+<td>Duplicates caught</td>
+<td>4</td>
+</tr>
+<tr>
+<td>Post-submission corrections needed</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Step-skipping incidents (with STRICT mode)</td>
+<td>&lt;5% of runs</td>
+</tr>
+</tbody>
+</table>
+<p>The most important number: <strong>0 post-submission
+corrections</strong>. Before the framework, we were fixing CRM records
+after the fact roughly once a week. That’s not a lot, but each
+correction required finding the bad record, understanding what went
+wrong, and manually fixing it. The framework eliminated that
+entirely.</p>
+<hr />
+<h2 id="the-error-transparency-protocol">The Error Transparency
+Protocol</h2>
+<p>One more pattern worth its own section.</p>
+<p>LLMs naturally recover from errors silently. File not found? Search
+for an alternative. API error? Retry. The user sees “Done!” and doesn’t
+know half the data is missing.</p>
+<p>We enforce four steps:</p>
+<pre><code>1. STOP    — Don&#39;t silently continue
+2. INFORM  — Tell the user what failed
+3. EXPLAIN — Describe the recovery approach
+4. PROCEED — Only then attempt the fix</code></pre>
+<p>In practice:</p>
+<pre><code>❌ Wrong:
+[File not found] → [silently searches] → &quot;Done!&quot;
+
+✅ Correct:
+[File not found] → &quot;I looked for pending-queue.json but it 
+doesn&#39;t exist. This appears to be the first run. Creating 
+a new queue file...&quot; → [creates file] → continues</code></pre>
+<p>Seems minor. It’s not. When users see every failure and recovery,
+they trust the output. When failures are hidden, they don’t — and they
+shouldn’t.</p>
+<hr />
+<h2 id="how-this-maps-to-existing-standards">How This Maps to Existing
+Standards</h2>
+<p>We didn’t build a replacement. We built a layer.</p>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>Anthropic Skills</th>
+<th>AWS Agent SOPs</th>
+<th>Our Framework</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Modular structure (SKILL.md)</td>
+<td>✅</td>
+<td>—</td>
+<td>✅ Compatible</td>
+</tr>
+<tr>
+<td>Progressive disclosure</td>
+<td>✅</td>
+<td>—</td>
+<td>✅ Compatible</td>
+</tr>
+<tr>
+<td>Script execution</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅ + exit code protocol</td>
+</tr>
+<tr>
+<td>Per-step constraints (MUST/SHOULD/MAY)</td>
+<td>—</td>
+<td>✅</td>
+<td>Complementary</td>
+</tr>
+<tr>
+<td>Execution sequence enforcement</td>
+<td>—</td>
+<td>—</td>
+<td>✅ STRICT mode</td>
+</tr>
+<tr>
+<td>Execution plan display</td>
+<td>—</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Structural validation (Tier 1)</td>
+<td>—</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Confidence scoring (Tier 2)</td>
+<td>—</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Gated submission (Tier 3)</td>
+<td>—</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Cross-session state</td>
+<td>❌ Acknowledged gap</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Duplicate detection</td>
+<td>—</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Error transparency</td>
+<td>—</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<p>Everything in the “Our Framework” column is additive. A skill built
+with our extensions is still a valid Anthropic Agent Skill. You can use
+STRICT mode with AWS Agent SOPs. Nothing conflicts.</p>
+<hr />
+<h2 id="when-to-use-this-honestly">When to Use This (Honestly)</h2>
+<p><strong>Use it when:</strong> - Your skill writes to external systems
+(CRM, databases, file systems) - Your skill runs on a schedule (daily
+scans, weekly reports) - Bad output has consequences beyond “that’s
+annoying” - You need to explain to someone what the agent did and
+why</p>
+<p><strong>Don’t use it when:</strong> - Your skill answers questions or
+drafts text for human review - It’s a one-shot task (look something up,
+summarize a document) - The overhead of validation exceeds the cost of
+occasional bad output</p>
+<p>The framework has real overhead. STRICT mode adds ~200 tokens.
+Execution plans add a visible step. Validation scripts need maintenance.
+State files need a storage location. For a skill that drafts an email,
+this is overkill. For a skill that writes 23 records to your CRM, it
+pays for itself on the first run.</p>
+<hr />
+<h2 id="getting-started">Getting Started</h2>
+<p>If you want to try this, start small:</p>
+<ol type="1">
+<li><strong>Pick one skill</strong> that writes to an external
+system</li>
+<li><strong>Add confidence scoring</strong> (Tier 2) — define explicit
+HIGH/MEDIUM/LOW criteria for your domain, gate submission on
+confidence</li>
+<li><strong>Add STRICT mode</strong> — declare it, add the execution
+plan display, see if step-skipping decreases</li>
+<li><strong>Add state persistence</strong> — implement
+<code>.last-run</code> and duplicate detection</li>
+<li><strong>Measure</strong> — track post-submission corrections before
+and after</li>
+</ol>
+<p>Each layer is independent. Adopt incrementally. If confidence scoring
+alone cuts your correction rate, you might not need the rest.</p>
+<hr />
+<h2 id="whats-next">What’s Next</h2>
+<p>Three things we’re working on:</p>
+<p><strong>Validation script libraries.</strong> Reusable validators for
+common patterns — CRM field formats, date checking, duplicate detection
+algorithms. Package them so any skill can reference them.</p>
+<p><strong>Confidence calibration.</strong> Tracking actual outcomes
+(accepted, rejected, edited by human) against predicted confidence. If
+HIGH items get edited 30% of the time, the criteria are too loose. We
+want a feedback loop.</p>
+<p><strong>Cross-skill state.</strong> Today each skill has its own
+state. But skills that share a domain — email scanner, meeting logger,
+activity generator — would benefit from shared state. “This email was
+already processed by the meeting logger, don’t re-extract it as an
+activity.”</p>
+<hr />
+<h2 id="the-takeaway">The Takeaway</h2>
+<p>The Anthropic Agent Skills standard and AWS Agent SOPs solved the
+hard structural problems — how to package expertise, how to constrain
+behavior, how to make skills portable and composable. That foundation is
+solid.</p>
+<p>What was missing was the trust layer. The thing that lets you run a
+skill against production data and know — not hope, know — that the
+output meets a quality bar before it reaches your systems.</p>
+<p>Skills guide intent. Validation guarantees quality.</p>
+<p>The full framework spec is open source at <a
+href="https://github.com/GerardDeLapelinDumont/agent-skill-validation-framework">github.com/GerardDeLapelinDumont/agent-skill-validation-framework</a>.
+It’s a single markdown file you can drop into any SKILL.md-based
+project. We’d love feedback, contributions, and war stories from anyone
+building production agent skills.</p>
+<hr />
+<p><em>Gerard De Lapelin Dumont is a Solutions Architect who builds AI
+agent workflows for enterprise customers. The AI field assistant that
+co-authored this article is the same agent that runs the skills
+described in it. The framework was developed through daily production
+use across 5 skills over 10 weeks. All metrics are from actual
+production data. Opinions are the authors’ own.</em></p>

@@ -1,5 +1,3 @@
-> **Note:** The canonical version of this article (formatted for Medium copy-paste) is [`blog-post-medium.md`](blog-post-medium.md). This file is the original draft.
-
 # From Probabilistic to Predictable: A Validation Framework for AI Agent Skills
 
 *How a 3-tier validation layer on top of the Anthropic Agent Skills standard turned our AI agent workflows from "works most of the time" to "works every time."*
@@ -123,11 +121,11 @@ The agent doesn't interpret validation results. It reads exit codes. 0 = passed.
 
 Every generated item gets a confidence level with explicit, domain-specific criteria:
 
-| Level | Criteria | What Happens |
-|-------|----------|-------------|
-| **HIGH** | Clear source event + complete context + CRM record linked + all fields validated + unambiguous classification | Auto-approve eligible |
-| **MEDIUM** | Likely valid but missing one HIGH criterion (no CRM link, ambiguous type, limited context) | Human review required |
-| **LOW** | Speculative — brief interaction, missing multiple fields, unclear if item is warranted | Enrich or discard |
+**Confidence Levels:**
+
+- **HIGH** — Clear source event + complete context + CRM record linked + all fields validated + unambiguous classification → Auto-approve eligible
+- **MEDIUM** — Likely valid but missing one HIGH criterion (no CRM link, ambiguous type, limited context) → Human review required
+- **LOW** — Speculative — brief interaction, missing multiple fields, unclear if item is warranted → Enrich or discard
 
 The criteria must be specific to your domain. "Complete context" means something different for an email scanner (full thread available) versus a meeting logger (agenda + attendees + notes all present). Vague criteria → everything becomes MEDIUM → framework is useless.
 
@@ -175,26 +173,23 @@ We've been running this framework across 5 production skills for about 10 weeks.
 
 Scans emails, calendar, and meeting notes to generate structured activity records for a CRM.
 
-**Before the framework (weeks 1-4):**
-- Agent generated activities and submitted them directly
-- No confidence scoring, no validation, no duplicate detection
-- ~30% of submitted activities needed manual correction after the fact
-- Duplicate activities appeared when the skill ran on overlapping date ranges
-- Step skipping caused missed CRM record linking on ~25% of runs
+**Before the framework (weeks 1–4):**
+- ~30% of submitted activities needed manual correction
+- Duplicate activities appeared on overlapping date ranges
+- Step skipping caused missed CRM linking on ~25% of runs
 
-**After the framework (weeks 5-10):**
+**After the framework (weeks 5–10):**
 - 23 activities submitted through the validated queue
-- 100% were HIGH confidence at time of submission
-- 3 MEDIUM confidence items currently in queue awaiting review (not auto-submitted)
-- 0 duplicates submitted (dedup caught overlapping items across runs)
+- 100% were HIGH confidence at submission
+- 3 MEDIUM confidence items in queue awaiting review (not auto-submitted)
+- 0 duplicates submitted
 - 0 post-submission corrections needed
 
-| Metric | Before | After | Change |
-|--------|--------|-------|--------|
-| Post-submission corrections | ~30% | 0% | ✅ Eliminated |
-| Duplicate submissions | Frequent | 0 | ✅ Eliminated |
-| Step-skipping incidents | ~25% of runs | <5% of runs | ✅ 80% reduction |
-| Items needing manual review | 0 (everything auto-submitted) | 3 of 26 (12%) | ✅ Only uncertain items flagged |
+**Impact:**
+- Post-submission corrections: ~30% → 0% ✅
+- Duplicate submissions: Frequent → 0 ✅
+- Step-skipping incidents: ~25% of runs → <5% of runs ✅
+- Items needing manual review: 0 (everything auto-submitted) → 3 of 26 (12%) — only uncertain items flagged ✅
 
 ### Skill 2: Field Insight Generator
 
@@ -227,15 +222,13 @@ In one run processing 3 meetings, the validation step caught a filename that did
 
 Across all 5 skills over 10 weeks:
 
-| Metric | Value |
-|--------|-------|
-| Total items generated | ~90 |
-| Items submitted (HIGH confidence) | 23 |
-| Items in review queue (MEDIUM) | 12 |
-| Items discarded (LOW or failed validation) | ~5 |
-| Duplicates caught | 4 |
-| Post-submission corrections needed | 0 |
-| Step-skipping incidents (with STRICT mode) | <5% of runs |
+- **Total items generated:** ~90
+- **Items submitted (HIGH confidence):** 23
+- **Items in review queue (MEDIUM):** 12
+- **Items discarded (LOW or failed validation):** ~5
+- **Duplicates caught:** 4
+- **Post-submission corrections needed:** 0
+- **Step-skipping incidents (with STRICT mode):** <5% of runs
 
 The most important number: **0 post-submission corrections**. Before the framework, we were fixing CRM records after the fact roughly once a week. That's not a lot, but each correction required finding the bad record, understanding what went wrong, and manually fixing it. The framework eliminated that entirely.
 
@@ -276,20 +269,20 @@ Seems minor. It's not. When users see every failure and recovery, they trust the
 
 We didn't build a replacement. We built a layer.
 
-| Capability | Anthropic Skills | AWS Agent SOPs | Our Framework |
-|---|---|---|---|
-| Modular structure (SKILL.md) | ✅ | — | ✅ Compatible |
-| Progressive disclosure | ✅ | — | ✅ Compatible |
-| Script execution | ✅ | ✅ | ✅ + exit code protocol |
-| Per-step constraints (MUST/SHOULD/MAY) | — | ✅ | Complementary |
-| Execution sequence enforcement | — | — | ✅ STRICT mode |
-| Execution plan display | — | — | ✅ |
-| Structural validation (Tier 1) | — | — | ✅ |
-| Confidence scoring (Tier 2) | — | — | ✅ |
-| Gated submission (Tier 3) | — | — | ✅ |
-| Cross-session state | ❌ Acknowledged gap | — | ✅ |
-| Duplicate detection | — | — | ✅ |
-| Error transparency | — | — | ✅ |
+**How this maps to existing standards:**
+
+- *Modular structure (SKILL.md)* — Anthropic ✅ / Our Framework ✅ Compatible
+- *Progressive disclosure* — Anthropic ✅ / Our Framework ✅ Compatible
+- *Script execution* — Anthropic ✅ / AWS SOPs ✅ / Our Framework ✅ + exit code protocol
+- *Per-step constraints (MUST/SHOULD/MAY)* — AWS SOPs ✅ / Complementary
+- *Execution sequence enforcement* — Our Framework ✅ STRICT mode
+- *Execution plan display* — Our Framework ✅
+- *Structural validation (Tier 1)* — Our Framework ✅
+- *Confidence scoring (Tier 2)* — Our Framework ✅
+- *Gated submission (Tier 3)* — Our Framework ✅
+- *Cross-session state* — Anthropic ❌ Acknowledged gap / Our Framework ✅
+- *Duplicate detection* — Our Framework ✅
+- *Error transparency* — Our Framework ✅
 
 Everything in the "Our Framework" column is additive. A skill built with our extensions is still a valid Anthropic Agent Skill. You can use STRICT mode with AWS Agent SOPs. Nothing conflicts.
 

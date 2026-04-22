@@ -1,0 +1,59 @@
+{
+  "generated_at": "2026-04-01T16:00:00-07:00",
+  "drafts": [
+    {
+      "id": "ins-001",
+      "action": "CREATE",
+      "confidence": "HIGH",
+      "auto_approve_eligible": true,
+      "title": "Customer migration to EKS Fargate across 3 FSI accounts",
+      "description": "Three financial services customers (Bank A, Bank B, Insurance C) independently migrated container workloads from self-managed EKS to Fargate in Q1. Common driver: reducing operational overhead for PCI-DSS compliance. Average migration time: 6 weeks. All reported 40-60% reduction in cluster management effort.",
+      "category": "Observation",
+      "date": "2026-04-01",
+      "source": {
+        "type": "meeting",
+        "reference": "Calendar: FSI Container Strategy Review — Apr 1"
+      },
+      "duplicate_check": {
+        "status": "no_duplicate"
+      }
+    },
+    {
+      "id": "ins-002",
+      "action": "CREATE",
+      "confidence": "MEDIUM",
+      "auto_approve_eligible": false,
+      "title": "OpenSearch Serverless pricing concern blocking adoption",
+      "description": "Customer raised concern about OpenSearch Serverless OCU minimum pricing during architecture review. Current self-managed cluster costs $2.1K/month; Serverless minimum would be $3.5K/month for their usage pattern. Evaluating alternatives.",
+      "category": "Challenge",
+      "date": "2026-03-28",
+      "source": {
+        "type": "email",
+        "reference": "Email: RE: OpenSearch Migration Options — Mar 28"
+      },
+      "duplicate_check": {
+        "status": "possible_duplicate",
+        "similarity": 0.72,
+        "matched_id": "ins-prev-047",
+        "matched_title": "OpenSearch pricing feedback from Q4 review"
+      }
+    },
+    {
+      "id": "ins-003",
+      "action": "CREATE",
+      "confidence": "LOW",
+      "auto_approve_eligible": false,
+      "title": "Possible interest in Bedrock for compliance document processing",
+      "description": "Brief mention in calendar invite notes about exploring GenAI for compliance document review. No meeting notes or follow-up found.",
+      "category": "Observation",
+      "date": "2026-03-26",
+      "source": {
+        "type": "calendar",
+        "reference": "Calendar: Quick Sync — Mar 26"
+      },
+      "duplicate_check": {
+        "status": "no_duplicate"
+      }
+    }
+  ]
+}
