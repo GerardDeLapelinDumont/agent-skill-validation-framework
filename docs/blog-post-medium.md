@@ -343,4 +343,4 @@ The full framework spec is open source at [github.com/GerardDeLapelinDumont/agen
 
 ---
 
-*Gerard De Lapelin Dumont builds AI agent workflows for production use cases. The AI field assistant that co-authored this article is the same agent that runs the skills described in it. The framework was developed through daily production use across 5 skills over 10 weeks. All metrics are from actual production data. Opinions are the authors' own.*
+*Gerard De Lapelin Dumont is a Solutions Architect who builds AI agent workflows for enterprise customers. The AI field assistant that co-authored this article is the same agent that runs the skills described in it. The framework was developed through daily production use across 5 skills over 10 weeks. All metrics are from actual production data. Opinions are the authors' own.*
