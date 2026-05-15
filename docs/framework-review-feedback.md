@@ -13,7 +13,7 @@
 - Error transparency protocol (STOP → INFORM → EXPLAIN → PROCEED) is excellent. Four words that solve the most dangerous LLM behavior.
 - Separating runtime data from skill definitions — a lesson most people learn the hard way, codified upfront.
 - The Skill Authoring Guide is genuinely useful as a standalone spec. The checklist, anti-patterns table, wrong-vs-right examples — written by someone who actually builds with these tools.
-- Compatibility story is clean — everything additive to Anthropic standard, nothing conflicts with AWS SOPs.
+- Compatibility story is clean — everything additive to Anthropic standard, nothing conflicts with Agent SOPs.
 - Production metrics are compelling (0 post-submission corrections across 23 items over 10 weeks).
 
 ---

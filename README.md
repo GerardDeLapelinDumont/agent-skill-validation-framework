@@ -6,11 +6,14 @@ A validation layer for AI agent skills that extends the [Anthropic Agent Skills 
 
 AI agent skills tell the agent *what* to do. SOPs tell the agent *how* to behave. Neither tells the agent — or you — whether the output is *good enough to trust*.
 
-This framework closes that gap with three extensions:
+This framework closes that gap with six extensions:
 
 1. **STRICT Execution Mode** — Enforces step ordering, displays execution plans, reduces step-skipping from ~25% to <5% of runs
 2. **Three-Tier Validation** — Structural validation (code), confidence scoring (domain-specific), and gated submission (separate generate vs. submit)
 3. **Cross-Session State** — Local state files for scan windows, duplicate detection, and submission history
+4. **Rollback & Recovery** — Checkpointing before destructive operations, HALT/ROLLBACK options on failure, user-initiated undo
+5. **Skill Composition** — Dependency declaration between skills, queue-as-contract pattern, error propagation across skill boundaries
+6. **Confidence Meta-Template** — Domain-agnostic 4-question framework for defining confidence criteria, plus a JSON schema data contract for validation scripts
 
 ## Production Results
 
@@ -26,22 +29,27 @@ Across 5 production skills over 10 weeks:
 
 Fully compatible with:
 - [Anthropic Agent Skills Open Standard](https://agentskills.io) — all extensions are additive
-- [AWS Agent SOPs](https://aws.amazon.com/blogs/opensource/introducing-strands-agent-sops-natural-language-workflows-for-ai-agents/) — STRICT mode complements RFC 2119 constraints
+- [Agent SOPs](https://github.com/strands-agents/agent-sops) — STRICT mode complements RFC 2119 constraints
 
 A skill built with this framework is still a valid Anthropic Agent Skill.
 
 ## Quick Start
 
 1. Read the [Skill Authoring Guide](docs/skill-authoring-guide.md) — the complete framework spec
-2. Check the [examples/](examples/) directory for reference implementations
-3. Add `## Execution Mode: STRICT` to your SKILL.md
-4. Define domain-specific confidence criteria (HIGH/MEDIUM/LOW)
-5. Separate your generator skill from your submission skill
+2. Study the [reference skill](examples/reference-skill/SKILL.md) — a fully annotated example with all v1.1 patterns
+3. Review the [validation script](examples/scripts/validate-draft.py) — structural validation with JSON data contract
+4. Add `## Execution Mode: STRICT` to your SKILL.md
+5. Define domain-specific confidence criteria using the 4-question meta-template
+6. Separate your generator skill from your submission skill
+7. Add rollback checkpoints before any destructive operations
 
 ## Documentation
 
 - [Skill Authoring Guide](docs/skill-authoring-guide.md) — Full framework specification
-- [Examples](examples/) — Reference skill implementations
+- [Reference Skill](examples/reference-skill/SKILL.md) — Annotated SKILL.md with all patterns
+- [Validation Script](examples/scripts/validate-draft.py) — Example structural validator with JSON data contract
+- [Examples](examples/) — State files, logs, and sample outputs
+- [Roadmap](ROADMAP.md) — What's shipped and what's planned
 
 ## Related
 

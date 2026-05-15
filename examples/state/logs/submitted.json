@@ -7,7 +7,7 @@
       "category": "Challenge",
       "date": "2026-03-14",
       "external_id": "a]F8x00000EXAMPLE",
-      "external_url": "https://aws-crm.lightning.force.com/lightning/n/Sales_Insights_Field_Trends?c__insightId=a]F8x00000EXAMPLE",
+      "external_url": "https://crm.example.com/insights?id=EXAMPLE-001",
       "source": {
         "type": "meeting",
         "reference": "Calendar: Q4 Architecture Review — Mar 14"

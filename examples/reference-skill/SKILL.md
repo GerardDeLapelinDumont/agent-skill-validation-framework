@@ -19,9 +19,9 @@ A reference implementation showing all Agent Skill Validation Framework extensio
 
 ## Queue Paths
 
-**Queue:** `~/.aim-data/example-insight-generator/pending-insights.json`
-**Logs:** `~/.aim-data/example-insight-generator/logs/submitted-insights.json`
-**State:** `~/.aim-data/example-insight-generator/.last-run`
+**Queue:** `~/.agent-data/example-insight-generator/pending-insights.json`
+**Logs:** `~/.agent-data/example-insight-generator/logs/submitted-insights.json`
+**State:** `~/.agent-data/example-insight-generator/.last-run`
 
 > ⚠️ All reads and writes go to the paths above. Never co-locate runtime data with skill definitions.
 
@@ -65,7 +65,7 @@ EXECUTION PLAN:
 
 ## Step 0: Check Last Run and Calculate Date Range
 
-1. Read state file: `~/.aim-data/example-insight-generator/.last-run`
+1. Read state file: `~/.agent-data/example-insight-generator/.last-run`
 2. If exists: `days = days_since_last_run + 1` (unless user provided `days`)
 3. If missing: `days = 7` (unless user provided `days`)
 
@@ -122,7 +122,7 @@ The script returns JSON conforming to the validation data contract:
 
 ## Step 5: Check for Duplicates
 
-1. Read submission log: `~/.aim-data/example-insight-generator/logs/submitted-insights.json`
+1. Read submission log: `~/.agent-data/example-insight-generator/logs/submitted-insights.json`
 2. For each finding, compare against submitted items:
    - Match: same title + same date (±3 days) + same category
    - >85% similarity → DUPLICATE, exclude
@@ -157,7 +157,7 @@ Set `auto_approve_eligible: true` only for HIGH confidence.
 
 ## Step 7: Add to Queue
 
-1. Read/create `~/.aim-data/example-insight-generator/pending-insights.json`
+1. Read/create `~/.agent-data/example-insight-generator/pending-insights.json`
 2. Add validated findings (excluding >85% duplicates)
 3. Save updated queue
 
@@ -191,7 +191,7 @@ Set `auto_approve_eligible: true` only for HIGH confidence.
 
 **⚠️ MANDATORY — always execute, even if no findings generated.**
 
-Write to `~/.aim-data/example-insight-generator/.last-run`:
+Write to `~/.agent-data/example-insight-generator/.last-run`:
 ```
 Last run: [current_timestamp]
 Scan period: [start_date] to [end_date] ([X] days)
@@ -221,7 +221,7 @@ Results: [Q] findings generated
   • 🔴 [Z] LOW confidence
 
 Duplicates: [N] excluded
-Queue: ~/.aim-data/example-insight-generator/pending-insights.json
+Queue: ~/.agent-data/example-insight-generator/pending-insights.json
 
 Next: `show insight queue` to review
 ═══════════════════════════════════════════════════════════

@@ -52,7 +52,7 @@ description: One-line description used for skill triggering and discovery
 ---
 ```
 
-The `description` field determines when the agent loads the skill. Be specific: "Generate SA activity queue from emails/meetings with mandatory validation" triggers reliably. "Helps with activities" does not.
+The `description` field determines when the agent loads the skill. Be specific: "Generate activity queue from emails/meetings with mandatory validation" triggers reliably. "Helps with activities" does not.
 
 ---
 
@@ -280,9 +280,9 @@ Skills that depend on another skill having run first SHOULD declare this in thei
 ```markdown
 ## Dependencies
 
-- **Requires:** `sa-activity-generator` must have run first (produces `pending-activities.json`)
-- **Reads from:** `~/.aim-data/sa-activity-queue/pending-activities.json`
-- **Writes to:** `~/.aim-data/sa-activity-queue/logs/submitted-activities.json`
+- **Requires:** `activity-generator` must have run first (produces `pending-activities.json`)
+- **Reads from:** `~/.agent-data/activity-queue/pending-activities.json`
+- **Writes to:** `~/.agent-data/activity-queue/logs/submitted-activities.json`
 ```
 
 This is documentation, not enforcement — the agent reads it and checks for the required files at Step 0.
@@ -444,7 +444,7 @@ Skills that perform destructive or incremental operations SHOULD checkpoint stat
 
 **Checkpoint storage:**
 ```
-~/.aim-data/<skill>/checkpoints/<session-id>/
+~/.agent-data/<skill>/checkpoints/<session-id>/
 ├── step-2.snapshot       # State before step 2 executed
 ├── step-4.snapshot       # State before step 4 executed
 └── manifest.json         # Maps steps to snapshots
@@ -545,7 +545,7 @@ Skills that support rollback SHOULD declare it in their SKILL.md:
 ## Rollback Support
 
 This skill checkpoints before each slide modification.
-- Checkpoints: `~/.aim-data/aws-presentation-builder/checkpoints/<session-id>/`
+- Checkpoints: `~/.agent-data/presentation-builder/checkpoints/<session-id>/`
 - Commands: `undo last slide`, `roll back to after slide N`
 - Cleanup: Offered on successful save
 ```
@@ -576,7 +576,7 @@ Results: [Q] items generated
   • 🔴 [Z] LOW confidence
 
 Duplicates: [N] excluded
-Queue: ~/.aim-data/<skill>/pending-<type>.json
+Queue: ~/.agent-data/<skill>/pending-<type>.json
 
 Next: `<command to review queue>`
 ═══════════════════════════════════════════════════════════
@@ -595,7 +595,7 @@ Next: `<command to review queue>`
 - [ ] Validation: structural checks on all generated output
 - [ ] Validation: confidence scoring (HIGH/MEDIUM/LOW) with explicit criteria
 - [ ] Validation: gated submission (only HIGH auto-approves)
-- [ ] State persistence via `~/.aim-data/<skill>/.last-run`
+- [ ] State persistence via `~/.agent-data/<skill>/.last-run`
 - [ ] Duplicate detection against submission logs
 - [ ] Error transparency (STOP → INFORM → EXPLAIN → PROCEED)
 - [ ] Summary display at completion

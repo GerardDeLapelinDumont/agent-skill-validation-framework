@@ -6,7 +6,7 @@
 
 ---
 
-Anthropic released the Agent Skills open standard in December 2025. It solved a real problem — modular, reusable expertise for AI agents without bloating every request with redundant instructions. A month later, AWS introduced Agent SOPs — markdown-based procedures using RFC 2119 keywords (MUST, SHOULD, MAY) to constrain agent behavior.
+Anthropic released the Agent Skills open standard in December 2025. It solved a real problem — modular, reusable expertise for AI agents without bloating every request with redundant instructions. A month later, the community introduced Agent SOPs — markdown-based procedures using RFC 2119 keywords (MUST, SHOULD, MAY) to constrain agent behavior.
 
 Both are great. We use both. And after six months of building production skills on top of them, we can tell you: they're not enough.
 
@@ -82,7 +82,7 @@ Two things happen here. First, the agent commits to a sequence before starting �
 
 Is it foolproof? No. But in our testing, step-skipping dropped from roughly 1-in-4 runs to fewer than 1-in-20.
 
-**How this relates to AWS Agent SOPs:** SOPs use MUST/SHOULD/MAY for per-step constraints. STRICT mode constrains the execution *sequence*. They're complementary — use STRICT for ordering, RFC 2119 for per-step rules.
+**How this relates to Agent SOPs:** SOPs use MUST/SHOULD/MAY for per-step constraints. STRICT mode constrains the execution *sequence*. They're complementary — use STRICT for ordering, RFC 2119 for per-step rules.
 
 ### Extension 2: Three-Tier Validation
 
@@ -198,7 +198,7 @@ Scans emails, calendar, and customer documents to generate field insights (struc
 **Production data from a single run (8-day scan window):**
 - 39 emails scanned (25 inbox, 14 sent)
 - 60+ calendar events processed
-- 51 OneDrive documents analyzed
+- 51 cloud-stored documents analyzed
 - 8 findings generated
 - Confidence breakdown: 5 HIGH, 2 MEDIUM, 0 LOW
 - 1 duplicate detected (marked as UPDATE instead of CREATE)
@@ -273,8 +273,8 @@ We didn't build a replacement. We built a layer.
 
 - *Modular structure (SKILL.md)* — Anthropic ✅ / Our Framework ✅ Compatible
 - *Progressive disclosure* — Anthropic ✅ / Our Framework ✅ Compatible
-- *Script execution* — Anthropic ✅ / AWS SOPs ✅ / Our Framework ✅ + exit code protocol
-- *Per-step constraints (MUST/SHOULD/MAY)* — AWS SOPs ✅ / Complementary
+- *Script execution* — Anthropic ✅ / Agent SOPs ✅ / Our Framework ✅ + exit code protocol
+- *Per-step constraints (MUST/SHOULD/MAY)* — Agent SOPs ✅ / Complementary
 - *Execution sequence enforcement* — Our Framework ✅ STRICT mode
 - *Execution plan display* — Our Framework ✅
 - *Structural validation (Tier 1)* — Our Framework ✅
@@ -284,7 +284,7 @@ We didn't build a replacement. We built a layer.
 - *Duplicate detection* — Our Framework ✅
 - *Error transparency* — Our Framework ✅
 
-Everything in the "Our Framework" column is additive. A skill built with our extensions is still a valid Anthropic Agent Skill. You can use STRICT mode with AWS Agent SOPs. Nothing conflicts.
+Everything in the "Our Framework" column is additive. A skill built with our extensions is still a valid Anthropic Agent Skill. You can use STRICT mode with Agent SOPs. Nothing conflicts.
 
 ---
 
@@ -333,7 +333,7 @@ Three things we're working on:
 
 ## The Takeaway
 
-The Anthropic Agent Skills standard and AWS Agent SOPs solved the hard structural problems — how to package expertise, how to constrain behavior, how to make skills portable and composable. That foundation is solid.
+The Anthropic Agent Skills standard and Agent SOPs solved the hard structural problems — how to package expertise, how to constrain behavior, how to make skills portable and composable. That foundation is solid.
 
 What was missing was the trust layer. The thing that lets you run a skill against production data and know — not hope, know — that the output meets a quality bar before it reaches your systems.
 
@@ -343,4 +343,4 @@ The full framework spec is open source at [github.com/GerardDeLapelinDumont/agen
 
 ---
 
-*Gerard De Lapelin Dumont is a Solutions Architect who builds AI agent workflows for enterprise customers. The AI field assistant that co-authored this article is the same agent that runs the skills described in it. The framework was developed through daily production use across 5 skills over 10 weeks. All metrics are from actual production data. Opinions are the authors' own.*
+*Gerard De Lapelin Dumont builds AI agent workflows for production use cases. The AI field assistant that co-authored this article is the same agent that runs the skills described in it. The framework was developed through daily production use across 5 skills over 10 weeks. All metrics are from actual production data. Opinions are the authors' own.*
