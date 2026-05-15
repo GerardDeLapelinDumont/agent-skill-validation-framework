@@ -460,14 +460,14 @@ Skills that perform destructive or incremental operations SHOULD checkpoint stat
       "step": 2,
       "description": "Before adding slide 3",
       "snapshot_file": "step-2.snapshot",
-      "artifact": "~/Documents/archer-qbr.pptx",
+      "artifact": "~/Documents/quarterly-review.pptx",
       "timestamp": "2026-04-22T10:46:12-07:00"
     },
     {
       "step": 4,
       "description": "Before adding slide 5",
       "snapshot_file": "step-4.snapshot",
-      "artifact": "~/Documents/archer-qbr.pptx",
+      "artifact": "~/Documents/quarterly-review.pptx",
       "timestamp": "2026-04-22T10:47:30-07:00"
     }
   ]
