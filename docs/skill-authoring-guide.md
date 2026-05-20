@@ -84,6 +84,17 @@ LLMs are non-deterministic by nature. Without STRICT mode, the agent may:
 
 STRICT mode forces sequential, auditable execution — the closest we can get to deterministic behavior from a probabilistic system.
 
+### The Invented Constraint Problem
+
+The most insidious STRICT mode violation is not skipping steps — it's **adding constraints that don't exist in the skill spec.** The agent applies its own "judgment" to filter, scope, or prioritize in ways the skill author never specified. Examples:
+- Filtering items by who sent them (when the skill says "scan all customer emails")
+- Deprioritizing data because it seems "less relevant" (when the skill says "log substantive correspondence")
+- Skipping a source because "it's not SA-led" (when the skill has no sender-role filter)
+
+This is harder to catch than a skipped step because the agent produces valid-looking output — just incomplete. The user doesn't know what was silently excluded.
+
+**Rule: In STRICT mode, the agent executes ONLY the logic specified in the skill. If a filtering criterion is not written in the skill, it does not exist. The agent must not invent inclusion/exclusion rules based on its own reasoning about relevance, ownership, or priority.**
+
 ---
 
 ## 3. Execution Plan Display
@@ -623,6 +634,7 @@ Next: `<command to review queue>`
 | No checkpoints before destructive steps | Can't recover from mid-execution failure | Checkpoint before file/system modifications (§8) |
 | Rollback only on error | User can't undo intentional but wrong changes | Support user-initiated rollback too |
 | Checkpoints never cleaned up | Disk fills with stale snapshots | Offer cleanup on successful completion |
+| Agent invents filtering criteria | Data silently excluded; user gets incomplete output without knowing | In STRICT mode, only apply filters explicitly written in the skill. If a criterion isn't in the spec, it doesn't exist |
 
 ---
 
